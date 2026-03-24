@@ -3,10 +3,12 @@
 ## Development Policy
 Write all code comments in English.
 Maintain README.md in English.
+README.mdに対応する、日本語のREADME.ja.mdをつくる。
 Claude.md は日本語で良い。
 
 ## Project Overview
 DRIVE Update V3 の基本動作（パッケージ配布・更新適用）を検証するテストプロジェクト。
+現在はthorが起動していない。そのため動作確認は行わなくて良い。
 
 **検証対象:**
 1. sample_driveupdate  
@@ -26,19 +28,31 @@ DRIVE Update V3 の基本動作（パッケージ配布・更新適用）を検�
 SSH接続先は `~/.ssh/config` の `thor` を使用する。
 
 ## Project Structure
+```
 .
-├── build.sh
-├── env.sh
-├── docker.sh
-├── driveupdate_test/
-│   ├── README.md
-│   ├── scripts/
-│   │   ├── run_client.sh
-│   │   ├── run_server.sh
-│   │   └── run_tool.sh
-│   └── logs/
-└── docs/
-    └── driveupdate.md
+├── env.sh                     # Environment variables
+├── build.sh                   # Cross-compilation script (host → Docker → bin/)
+├── bin/                       # Built aarch64 binaries (gitignored)
+├── src/
+│   ├── common.mk              # Shared toolchain/flag definitions
+│   ├── content_server/        # Update package server
+│   ├── sample_client_app/     # Update client
+│   ├── du-cli/                # CLI tool
+│   ├── duinstaller/           # Installer plugin
+│   │   ├── duinstaller.c/h            # State machine + DU Link node table
+│   │   ├── duinstaller_helpers.c/h    # deploy / commit command execution
+│   │   └── duinstaller_main.c         # Entry point
+│   ├── plugin_common/         # Shared installer callbacks (installerCmdCB etc.)
+│   ├── bhc_plugin/            # BHC API shared library
+│   ├── remote_content_provider/  # Remote content provider (optional, needs libcurl)
+│   └── sample_ffu_update/     # FFU update sample (optional, needs libnvmnand_private)
+└── driveupdate_test/
+    ├── scripts/
+    │   ├── run_server.sh      # Deploy and run content_server on Thor
+    │   ├── run_client.sh      # Deploy and run sample_driveupdate on Thor
+    │   └── run_tool.sh        # Deploy and run du_cli on Thor
+    └── logs/                  # Run logs with timestamps (gitignored)
+```
 
 ## Docker Container
 コンテナ名: `drive-sdk`
@@ -49,6 +63,10 @@ docker run -d --rm -it --privileged --net=host \
     -v $HOME/driveos_ws:/home/nvidia \
     --name ${DOCKER_CONTAINER} \
     nvcr.io/drive/driveos-sdk/drive-agx-linux-nsr-aarch64-sdk-build-x86:7.0.3.0-0010
+
+### sample
+docker内部の以下のdrive updateのサンプルがあるので参照する。
+/drive/drive-linux/samples/driveupdate
 
 ## Toolchain (コンテナ内)
 - クロスコンパイル不要（サンプル利用）
