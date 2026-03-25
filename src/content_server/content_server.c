@@ -168,8 +168,7 @@ static DU_RCODE parseCmd
         DU_ERR("Cmd input too long\n");
         return CONTENT_ERR_BUFFER_TOO_SMALL;
     }
-    strncpy(tokenizeBuf, pCmdInput, DU_MAX_CMD_LEN);
-    tokenizeBuf[DU_MAX_CMD_LEN - 1U] = '\0';
+    (void) strlcpy(tokenizeBuf, pCmdInput, DU_MAX_CMD_LEN);
 
     duRet = parseStringIntoTokens(tokenizeBuf, &numTokens, tokens,
                                   MAX_CMD_TOKENS);
@@ -180,7 +179,7 @@ static DU_RCODE parseCmd
     }
 
     // Match first token to possible commands
-    strncpy(cmdBuf, tokenizeBuf, tokens[0].size);
+    (void) strlcpy(cmdBuf, tokenizeBuf, tokens[0].size + 1U);
     for (i = 0; i < DU_ARRAY_SIZE(CONTENT_CMDS_TABLE); i++)
     {
         if (strcmp(cmdBuf, CONTENT_CMDS_TABLE[i]) == 0)
@@ -489,7 +488,7 @@ static DU_RCODE entryOperation
     }
 
     // Construct node path
-    (void)strcpy(nodePath, CONTENT_FILE_PATH);
+    (void)strlcpy(nodePath, CONTENT_FILE_PATH, sizeof(nodePath));
     // Skip ./ prefix
     if ((localName[0] == '.') && (localName[1] == '/'))
     {
@@ -501,8 +500,8 @@ static DU_RCODE entryOperation
     }
     if (*pFilename != '\0')
     {
-        (void)strcat(nodePath, "/");
-        (void)strcat(nodePath, pFilename);
+        (void)strlcat(nodePath, "/", sizeof(nodePath));
+        (void)strlcat(nodePath, pFilename, sizeof(nodePath));
     }
     // Check if file can be accessed first when register file
     if (bOperation)
@@ -794,7 +793,7 @@ DU_RCODE cmdCB
                 duRet = DULINK_CB_ERR_UNKNOWN;
                 break;
             }
-            strncpy((char *) pBuf, pServer->content_provider.contentCmd, length);
+            (void) strlcpy((char *) pBuf, pServer->content_provider.contentCmd, length);
             *pRetVal = strlen((char *) pBuf);
             break;
         }
@@ -811,8 +810,7 @@ DU_RCODE cmdCB
                 duRet = DULINK_CB_ERR_INVALID_ARGUMENT;
                 break;
             }
-            strncpy(tmpCmd, (char *) pBuf, length);
-            tmpCmd[length] = '\0';
+            (void) strlcpy(tmpCmd, (char *) pBuf, length + 1U);
 
             duRet = parseCmd(tmpCmd, &cmdId, tmpPath, sizeof(tmpPath));
             if (duRet != DU_OK)
@@ -828,7 +826,7 @@ DU_RCODE cmdCB
                 duRet = DULINK_CB_ERR_INVALID_ARGUMENT;
                 break;
             }
-            (void)strcpy(pServer->content_provider.contentCmd, tmpCmd);
+            (void)strlcpy(pServer->content_provider.contentCmd, tmpCmd, sizeof(pServer->content_provider.contentCmd));
             break;
         }
         default:
@@ -1012,7 +1010,7 @@ static void deregisterContentServer(void)
     uint64_t    retLen;
     uint64_t    result = 0UL;
 
-    (void)strncpy(cmdBuf, "deregister", DU_STR_SHORT_BUF_SIZE);
+    (void)strlcpy(cmdBuf, "deregister", DU_STR_SHORT_BUF_SIZE);
     if (AddU64((uint64_t)strlen(cmdBuf), 1U, &result))
     {
         if (dulinkWrite(pPath, 0U, result, cmdBuf, &retLen) != DU_OK)

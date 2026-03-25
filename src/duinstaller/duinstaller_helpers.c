@@ -68,7 +68,7 @@ DU_RCODE parseCmd
         DU_ERR("Cmd input too long\n");
         return SAMPLE_ERR_BUFFER_TOO_SMALL;
     }
-    strncpy(tokenizeBuf, pCmdInput, DUINSTALLER_MAX_CMD_LEN - 1);
+    (void) strlcpy(tokenizeBuf, pCmdInput, DUINSTALLER_MAX_CMD_LEN);
 
     duRet = parseStringIntoTokens(tokenizeBuf, &numTokens, tokens, MAX_TOKENS);
     if (duRet != DU_OK || numTokens == 0)
@@ -78,7 +78,7 @@ DU_RCODE parseCmd
     }
 
     // Match first token to possible commands in SAMPLE_CMDS_TABLE
-    strncpy(cmdBuf, tokenizeBuf, tokens[0].size);
+    (void) strlcpy(cmdBuf, tokenizeBuf, tokens[0].size + 1U);
     for (i = 0; i < DU_ARRAY_SIZE(SAMPLE_CMDS_TABLE); i++)
     {
         if (strcmp(cmdBuf, SAMPLE_CMDS_TABLE[i]) == 0)
@@ -175,7 +175,7 @@ DU_RCODE execDeployCmd
         duRet = SAMPLE_ERR_BUFFER_TOO_SMALL;
         goto bailout;
     }
-    strcat(pMyInstaller->stagedFilePathBuf, STAGED_SUFFIX);
+    (void) strlcat(pMyInstaller->stagedFilePathBuf, STAGED_SUFFIX, sizeof(pMyInstaller->stagedFilePathBuf));
 
     // Open file for writing
     pInstallFile = fopen(pMyInstaller->stagedFilePathBuf, "wb");
@@ -243,7 +243,7 @@ DU_RCODE execCommitCmd
     }
 
     // Get new savename, strip .staged suffix
-    strcpy(commitSavePath, pMyInstaller->stagedFilePathBuf);
+    (void) strlcpy(commitSavePath, pMyInstaller->stagedFilePathBuf, sizeof(commitSavePath));
     pStagedSuffix = strstr(commitSavePath, STAGED_SUFFIX);
     if (pStagedSuffix == NULL)
     {

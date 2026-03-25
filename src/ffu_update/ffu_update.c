@@ -239,7 +239,7 @@ int32_t main(int32_t argc, char* argv[])
                     printf("Input device node's size is larger than %lu\n", sizeof(devPath));
                     return -1;
                 }
-                (void) strcpy(devPath, optarg);
+                (void) strlcpy(devPath, optarg, sizeof(devPath));
                 break;
 
             case 'f':
@@ -254,7 +254,7 @@ int32_t main(int32_t argc, char* argv[])
                     printf("Input device node's size is larger than %lu\n", sizeof(devPath));
                     return -1;
                 }
-                (void) strcpy(fwPath, optarg);
+                (void) strlcpy(fwPath, optarg, sizeof(fwPath));
                 break;
 
             case 'h':

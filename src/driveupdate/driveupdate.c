@@ -89,7 +89,7 @@ enum command_type{
     COMMAND_ABORT,
     COMMAND_QUERY_BOOTCHAIN,
     COMMAND_GET_PART_VER,
-    COMMADN_SET_RUNLEVEL,
+    COMMAND_SET_RUNLEVEL,
     COMMAND_MAX = 0xFF
 };
 typedef enum command_type command_type;
@@ -140,10 +140,12 @@ static char pvitBuf[DU_256KB];
 #define JSON_ELEMENT_SIZE    (DU_1KB * 160U)
 
 // Lock for validate in push mode
-#define VALIDATE_PUSHMODE_FAIL 0U
-#define VALIDATE_PUSHMODE_SUCCESS 1U
-#define VALIDATE_PUSHMODE_INPROGRESS 2U
-static volatile uint8_t validatePushModeStatus =  VALIDATE_PUSHMODE_FAIL;
+typedef enum {
+    VALIDATE_PUSHMODE_FAIL       = 0U,
+    VALIDATE_PUSHMODE_SUCCESS    = 1U,
+    VALIDATE_PUSHMODE_INPROGRESS = 2U
+} ValidatePushModeStatus;
+static volatile ValidatePushModeStatus validatePushModeStatus = VALIDATE_PUSHMODE_FAIL;
 static pthread_mutex_t validatePushModeMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t validatePushModeCond = PTHREAD_COND_INITIALIZER;
 
@@ -532,7 +534,7 @@ static void cleanUpConn(void)
 
     if (gRefId != DULINK_CLOSE_ALL)
     {
-        (void) strncpy(cmdBuf, "deregister", DU_STR_SHORT_BUF_SIZE);
+        (void) strlcpy(cmdBuf, "deregister", DU_STR_SHORT_BUF_SIZE);
         if (dulinkWrite(pPath, 0, strlen(cmdBuf)+1U, cmdBuf, &retLen) != DU_OK)
         {
             DU_ERR("Can't deregister from master\n");
@@ -616,7 +618,7 @@ checkAuthPackage(const char *pPkgPath)
         goto exit;
     }
 
-    (void)strncpy(authConfPath, pPkgPath, sizeof(authConfPath));
+    (void)strlcpy(authConfPath, pPkgPath, sizeof(authConfPath));
     (void)strncat(authConfPath, DU_AUTH_CONF_PATH,
                   (sizeof(authConfPath) - strlen(authConfPath) - 1U));
     // check if auth_conf.json exists and has read permission in the package
@@ -656,7 +658,7 @@ updateContext(const char *pPkgPath, bool bPush)
     if (dulinkWrite(content_provider.persistCtxPath, 0,
                     strlen(context), context, &retLen) != DU_OK)
     {
-        // we just igrnore the fail
+        // we just ignore the fail
         DU_WARN("Can't Updating ctx, deploy won't be resumed across reboot\n");
     }
     return DU_OK;
@@ -707,11 +709,11 @@ performPush(void *pArg)
 
     if (strcmp(activeBootChain, BOOTCHAIN_A_VER) == 0)
     {
-        (void) strcpy(inactiveChain, B_BOOTCHAIN DU_SLASH_CHAIN);
+        (void) strlcpy(inactiveChain, B_BOOTCHAIN DU_SLASH_CHAIN, sizeof(inactiveChain));
     }
     else if (strcmp(activeBootChain, BOOTCHAIN_B_VER) == 0)
     {
-        (void) strcpy(inactiveChain, A_BOOTCHAIN DU_SLASH_CHAIN);
+        (void) strlcpy(inactiveChain, A_BOOTCHAIN DU_SLASH_CHAIN, sizeof(inactiveChain));
     }
     else
     {
@@ -1750,7 +1752,7 @@ fail:
     return ret;
 }
 
-/* ----------------------- COMMADN_GET_RUNLEVEL ---------------------------*/
+/* ----------------------- COMMAND_GET_RUNLEVEL ----------------------------*/
 /*!
  * @brief Get Runlevel
  */
@@ -1780,7 +1782,7 @@ static DU_RCODE getRunlevel(int argc, const char * argv[])
     return duRet;
 }
 
-/* ----------------------- COMMADN_SET_RUNLEVEL ---------------------------*/
+/* ----------------------- COMMAND_SET_RUNLEVEL ----------------------------*/
 /*!
  * @brief set Runlevel
  */
@@ -1817,7 +1819,7 @@ static DU_RCODE setRunlevel(int argc, const char *argv[])
     return duRet;
 }
 
-/* ----------------------- COMMADN_SET_RUNLEVEL ---------------------------*/
+/* ----------------------- COMMAND_PRINT_STATUS ----------------------------*/
 /*!
  * @brief Enable/Disable deployment status print
  */
@@ -1845,7 +1847,7 @@ static DU_RCODE printStatus(int argc, const char *argv[])
     return DU_OK;
 }
 
-/* ----------------------- COMMADN_DULINK_READ ---------------------------*/
+/* ----------------------- COMMAND_DULINK_READ ----------------------------*/
 /*!
  * @brief read file node context and display
  */
@@ -1976,7 +1978,7 @@ static DU_RCODE duRead(int argc, const char *argv[])
     return DU_OK;
 }
 
-/* ----------------------- COMMADN_DULINK_WRITE ---------------------------*/
+/* ----------------------- COMMAND_DULINK_WRITE ----------------------------*/
 /*!
  * @brief dulinkWrite node
  */
@@ -2008,7 +2010,7 @@ static DU_RCODE duWrite(int argc, const char *argv[])
     return DU_OK;
 }
 
-/* ----------------------- COMMADN_DULINK_LIST ---------------------------*/
+/* ----------------------- COMMAND_DULINK_LIST ----------------------------*/
 /*!
  * @brief list the nodes in a directory
  */
@@ -2073,7 +2075,7 @@ getContext(char *pPkgPath, bool *pbExportNeeded, bool *pbPush)
     if (dulinkRead(content_provider.persistCtxPath, 0,
                     sizeof(context), context, &retLen) != DU_OK)
     {
-        // we just igrnore the fail
+        // we just ignore the fail
         DU_INFO("Failed to read persistent context, assuming empty\n");
     }
     if (strlen(context) == 0)
@@ -2302,7 +2304,7 @@ static void getLine(int *argc, const char *argv[])
                     CalculateResult = 63 - __builtin_clzl(candidate);
                     if (CalculateResult >= 0)
                     {
-                        strncpy(&line[index], &gCmds[CalculateResult].cmd[index], MAX_CMDLINE - index);
+                        (void) strlcpy(&line[index], &gCmds[CalculateResult].cmd[index], MAX_CMDLINE - index);
                     }
                     else
                     {

@@ -293,7 +293,7 @@ static DU_RCODE verInstallerCmpCB
                 duRet = DULINK_CB_ERR_UNKNOWN;
                 break;
             }
-            strcpy((char *) pBuf, pSample->installerCmpBuf);
+            (void) strlcpy((char *) pBuf, pSample->installerCmpBuf, length);
             *pRetVal = strlen((char *) pBuf);
             break;
         }
@@ -309,7 +309,7 @@ static DU_RCODE verInstallerCmpCB
                 duRet = DULINK_CB_ERR_INVALID_ARGUMENT;
                 break;
             }
-            (void) strncpy(inputVerBuf, (char *) pBuf, length);
+            (void) strlcpy(inputVerBuf, (char *) pBuf, length + 1U);
             if (versionCmp(inputVerBuf, SAMPLE_VERSION, &result) != DU_OK)
             {
                 duRet = DULINK_CB_ERR_INVALID_ARGUMENT;
@@ -329,8 +329,9 @@ static DU_RCODE verInstallerCmpCB
             }
 
             pSample->installerCmpBuf[inputVerLen] = result;
-            (void) strcpy(pSample->installerCmpBuf + inputVerLen + 1,
-                SAMPLE_VERSION);
+            (void) strlcpy(pSample->installerCmpBuf + inputVerLen + 1,
+                SAMPLE_VERSION,
+                sizeof(pSample->installerCmpBuf) - inputVerLen - 1);
             break;
         }
         default:

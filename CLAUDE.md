@@ -2,9 +2,10 @@
 
 ## Development Policy
 Write all code comments in English.
-Maintain README.md in English.
-README.mdに対応する、日本語のREADME.ja.mdをつくる。
-Claude.md は日本語で良い。
+日本語のREADME.ja.mdを作成する。
+Claude.md は日本語で記載する。
+README.ja.mdに対応するREADME.mdを英語で記載する。ただし対応する英語版の作成は時間がかかるため、README.mdへの反映はその都度指示する。
+またリポジトリのコミット前にはREADME.mdへ反映するかの確認をすること。
 
 ## Project Overview
 DRIVE Update V3 の基本動作（パッケージ配布・更新適用）を検証するテストプロジェクト。
@@ -78,6 +79,17 @@ find / -name "sample_driveupdate" 2>/dev/null
 find / -name "content_server" 2>/dev/null
 find / -name "driveupdate_tool" 2>/dev/null
 
+
+## Debug (リモートGDB)
+```bash
+# ターミナル: デバッグビルド＆gdbserver起動
+./debug.sh error_report_test   # デフォルトポート 1234
+
+# VS Code: F5 で「Remote Debug error_report_test (Thor)」を選択
+```
+- `gdb-multiarch` をホストにインストール済み (`/usr/bin/gdb-multiarch`)
+- `sourceFileMap`: `/home/nvidia/error_report_test` → `${workspaceFolder}/error_report_test`
+
 ## Run
 
 ### Content Server 起動
@@ -95,6 +107,7 @@ find / -name "driveupdate_tool" 2>/dev/null
 3. サンプルパス探索
 4. スクリプト作成
 5. 実行・ログ取得
+
 
 ## Reference
 DRIVE Update V3 Developer Guide

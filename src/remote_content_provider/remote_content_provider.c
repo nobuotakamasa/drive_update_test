@@ -258,7 +258,7 @@ static DU_RCODE constructRange
         start[REMOTE_SIZE_MAX - 1] = '\0';
     }
 
-    (void) strncpy(pRange, start, REMOTE_SIZE_MAX);
+    (void) strlcpy(pRange, start, REMOTE_SIZE_MAX);
     return DU_OK;
 }
 
@@ -305,7 +305,7 @@ static DU_RCODE parseCmd
         DU_ERR("Cmd input too long\n");
         return CONTENT_ERR_BUFFER_TOO_SMALL;
     }
-    strncpy(tokenizeBuf, pCmdInput, DU_MAX_CMD_LEN);
+    (void) strlcpy(tokenizeBuf, pCmdInput, DU_MAX_CMD_LEN);
 
     duRet = parseStringIntoTokens(tokenizeBuf, &numTokens, tokens,
                                   MAX_CMD_TOKENS);
@@ -316,7 +316,7 @@ static DU_RCODE parseCmd
     }
 
     // Match first token to possible commands
-    strncpy(cmdBuf, tokenizeBuf, tokens[0].size);
+    (void) strlcpy(cmdBuf, tokenizeBuf, tokens[0].size + 1U);
     for (i = 0; i < DU_ARRAY_SIZE(CMDS_TABLE); i++)
     {
         if (strcmp(cmdBuf, CMDS_TABLE[i]) == 0)
@@ -356,7 +356,7 @@ void contentServerSetState
     if (pServer->state != state && strlen(STATES_TABLE[state]) < 32U)
     {
         pServer->state = state;
-        (void) strcpy(pServer->stateStr, STATES_TABLE[state]);
+        (void) strlcpy(pServer->stateStr, STATES_TABLE[state], sizeof(pServer->stateStr));
         (void) dulinkTriggerNotify(NOTIFY_NODE_STATE, pServer->stateStr,
         strlen(pServer->stateStr));
     }
@@ -627,7 +627,7 @@ static DU_RCODE entryOperation
     }
 
     // Construct node path
-    (void) strcpy(nodePath, CONTENT_FILE_PATH);
+    (void) strlcpy(nodePath, CONTENT_FILE_PATH, sizeof(nodePath));
     // Skip ./ prefix
     if ((localName[0] == '.') && (localName[1] == '/'))
     {
@@ -639,13 +639,13 @@ static DU_RCODE entryOperation
     }
     if (*pFilename != '\0' && strlen(pFilename) < DULINK_MAX_PATH)
     {
-        (void) strcat(nodePath, "/");
-        (void) strcat(nodePath, pFilename);
+        (void) strlcat(nodePath, "/", sizeof(nodePath));
+        (void) strlcat(nodePath, pFilename, sizeof(nodePath));
     }
     // Check if file can be accessed first when register file
     if (bOperation)
     {
-        (void) strcpy(localPath, pRootPath);
+        (void) strlcpy(localPath, pRootPath, sizeof(localPath));
         (void) duPathJoin(pRootPath, pFilename, localPath, sizeof(localPath));
         if (strcmp(localType, "dir") != 0 &&
             getRemoteFileSize(localPath, &fileSize) != DU_OK)
@@ -969,7 +969,7 @@ DU_RCODE requestedRLCB
                 duRet = DULINK_CB_ERR_INVALID_ARGUMENT;
                 break;
             }
-            strncpy(tmpBuf, pBuf, length);
+            (void) strlcpy(tmpBuf, pBuf, length + 1U);
             rl = runlevelStrToUint(tmpBuf);
             if (rl == RL_INVALID)
             {
@@ -1046,7 +1046,7 @@ DU_RCODE cmdCB
             if (length > 0UL) {
                 ((char *)pBuf)[length - 1UL] = '\0';
             }
-            strncpy((char *) pBuf, pServer->cmd, length);
+            (void) strlcpy((char *) pBuf, pServer->cmd, length);
             *pRetVal = strlen((char *) pBuf);
             break;
         }
@@ -1063,8 +1063,7 @@ DU_RCODE cmdCB
                 duRet = DULINK_CB_ERR_INVALID_ARGUMENT;
                 break;
             }
-            strncpy(tmpCmd, (char *) pBuf, length);
-            tmpCmd[length] = '\0';
+            (void) strlcpy(tmpCmd, (char *) pBuf, length + 1U);
 
             duRet = parseCmd(tmpCmd, &cmdId, tmpPath, sizeof(tmpPath));
             if (duRet != DU_OK)
@@ -1080,7 +1079,7 @@ DU_RCODE cmdCB
                 duRet = DULINK_CB_ERR_INVALID_ARGUMENT;
                 break;
             }
-            (void) strcpy(pServer->cmd, tmpCmd);
+            (void) strlcpy(pServer->cmd, tmpCmd, sizeof(pServer->cmd));
             break;
         }
         default:
@@ -1151,7 +1150,7 @@ DU_RCODE exportFileCB
         retCb = DULINK_CB_ERR_INVALID_ARGUMENT;
         goto ret;
     }
-    (void) strcpy(tmpPath, pRequestPath+strlen(CONTENT_FILE_FULL_PATH));
+    (void) strlcpy(tmpPath, pRequestPath+strlen(CONTENT_FILE_FULL_PATH), sizeof(tmpPath));
     (void) duPathJoin(pServer->localPath, tmpPath,
                       contentPath, sizeof(contentPath));
     duMutexUnlock(&pServer->mutex);
@@ -1288,7 +1287,7 @@ static void deregisterRemoteContent(void)
     uint64_t    retLen;
     uint64_t    result = 0UL;
 
-    (void) strncpy(cmdBuf, "deregister", DU_STR_SHORT_BUF_SIZE);
+    (void) strlcpy(cmdBuf, "deregister", DU_STR_SHORT_BUF_SIZE);
     if (!AddU64((uint64_t)strlen(cmdBuf), 1U, &result))
     {
         DU_ERR("Failed to dulinkWrite, strlen(cmdBuf): %lu\n", strlen(cmdBuf));
