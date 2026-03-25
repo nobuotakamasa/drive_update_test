@@ -576,7 +576,7 @@ Each script performs the following:
 ├── src/
 │   ├── common.mk              # Shared toolchain/flag definitions
 │   ├── content_server/        # Update package server
-│   ├── driveupdate/     # Update client
+│   ├── driveupdate/           # Update client
 │   ├── du-cli/                # CLI tool
 │   ├── duinstaller/           # Installer plugin
 │   │   ├── duinstaller.c/h            # State machine + DU Link node table
@@ -585,7 +585,22 @@ Each script performs the following:
 │   ├── plugin_common/         # Shared installer callbacks (installerCmdCB etc.)
 │   ├── bhc_plugin/            # BHC API shared library
 │   ├── remote_content_provider/  # Remote content provider (optional, needs libcurl)
-│   └── ffu_update/     # FFU update tool (optional, needs libnvmnand_private)
+│   └── ffu_update/            # FFU update tool (optional, needs libnvmnand_private)
+├── python_src/                # Python re-implementation of C components (Phase 1-4)
+│   ├── common/
+│   │   ├── run_level.py               # RunLevel enum (DORMANT / BG_APPLY / INVALID)
+│   │   ├── installer_common.py        # InstallerState/Cmd/Result + DuInstaller dataclass
+│   │   └── content_provider_common.py # ContentState/Cmd + ContentProvider dataclass
+│   ├── du_cli/
+│   │   ├── du_cli.py                  # Payload parsing, deploy loop, progress display
+│   │   └── dus_client_stub.py         # duscInit/Execute/Deinit stubs (log only)
+│   ├── content_server/
+│   │   ├── content_server.py          # CLI loop (cmd.Cmd), state management
+│   │   └── file_list.py               # list_of_files.json parser
+│   └── duinstaller/
+│       ├── installer.py               # State machine + main loop
+│       ├── installer_helpers.py       # deploy / commit logic
+│       └── dulink_stub.py             # dulinkGetSize/ReadRetry/TriggerNotify stubs
 └── driveupdate_test/
     ├── scripts/
     │   ├── run_server.sh      # Deploy and run content_server on Thor
@@ -593,3 +608,43 @@ Each script performs the following:
     │   └── run_tool.sh        # Deploy and run du_cli on Thor
     └── logs/                  # Run logs with timestamps (gitignored)
 ```
+
+---
+
+## Python Implementation (`python_src/`)
+
+Python re-implementation of the C components (Phases 1–4). All DU Link / DU Master
+SDK API calls are replaced with log-only stubs so that the logic can run on any host
+without a DRIVE OS target.
+
+### Scope
+
+| Phase | Module | C source | SDK stub |
+|-------|--------|----------|----------|
+| 1 | `python_src.du_cli` | `src/du-cli/du_cli.c` | `duscInit/Execute/Deinit` |
+| 2 | `python_src.common` | `src/plugin_common/` | `dulinkTriggerNotify` |
+| 3 | `python_src.content_server` | `src/content_server/` | `dulinkExport*/Unlink*`, `registerToMaster` |
+| 4 | `python_src.duinstaller` | `src/duinstaller/` | `dulinkGetSize`, `dulinkReadRetry` |
+
+### Usage
+
+```bash
+# du_cli: show help (-d not provided → skip deploy, stubs only)
+python3 -m python_src.du_cli -h
+python3 -m python_src.du_cli -d /path/to/dupkg
+
+# content_server: interactive CLI
+python3 -m python_src.content_server /path/to/my.dupkg
+python3 -m python_src.content_server --idle
+
+# duinstaller: runs state machine (stubs; blocks waiting for write_cmd())
+python3 -m python_src.duinstaller
+```
+
+### Design Notes
+
+- **Stubs**: SDK calls are isolated in `*_stub.py` classes that emit `[STUB]` log lines.
+- **Threading**: `threading.Condition` replaces `pthread_mutex_t + pthread_cond_t`.
+- **Binary parsing**: `struct.unpack` decodes the `DUS_PAYLOAD_HEADER` C struct.
+- **Atomic rename**: `os.rename()` on POSIX guarantees atomicity within the same filesystem.
+- **CLI**: `cmd.Cmd` implements the `content_server` interactive shell.
